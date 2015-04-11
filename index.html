@@ -1,76 +1,157 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en-us">
   <head>
-    <meta charset='utf-8' />
-    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
-    <meta name="description" content="Rdf-reasoner : Creates triples for various entailment regimes of a vocabulary for enabling SPARQL 1.1 Entailment" />
-
-    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
-
-    <title>Rdf-reasoner</title>
+    <meta charset="UTF-8">
+    <title>Rdf-reasoner by ruby-rdf</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
   </head>
-
   <body>
+    <section class="page-header">
+      <h1 class="project-name">Rdf-reasoner</h1>
+      <h2 class="project-tagline">Creates triples for various entailment regimes of a vocabulary for enabling SPARQL 1.1 Entailment</h2>
+      <a href="https://github.com/ruby-rdf/rdf-reasoner" class="btn">View on GitHub</a>
+      <a href="https://github.com/ruby-rdf/rdf-reasoner/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/ruby-rdf/rdf-reasoner/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
 
-    <!-- HEADER -->
-    <div id="header_wrap" class="outer">
-        <header class="inner">
-          <a id="forkme_banner" href="https://github.com/ruby-rdf/rdf-reasoner">View on GitHub</a>
-
-          <h1 id="project_title">Rdf-reasoner</h1>
-          <h2 id="project_tagline">Creates triples for various entailment regimes of a vocabulary for enabling SPARQL 1.1 Entailment</h2>
-
-            <section id="downloads">
-              <a class="zip_download_link" href="https://github.com/ruby-rdf/rdf-reasoner/zipball/master">Download this project as a .zip file</a>
-              <a class="tar_download_link" href="https://github.com/ruby-rdf/rdf-reasoner/tarball/master">Download this project as a tar.gz file</a>
-            </section>
-        </header>
-    </div>
-
-    <!-- MAIN CONTENT -->
-    <div id="main_content_wrap" class="outer">
-      <section id="main_content" class="inner">
-        <h1>
-<a name="rdf-reasoner" class="anchor" href="#rdf-reasoner"><span class="octicon octicon-link"></span></a>rdf-reasoner</h1>
+    <section class="main-content">
+      <h1>
+<a id="rdf-reasoner" class="anchor" href="#rdf-reasoner" aria-hidden="true"><span class="octicon octicon-link"></span></a>rdf-reasoner</h1>
 
 <p>Reasons over RDFS/OWL vocabularies and schema.org to generate statements which are entailed based on base RDFS/OWL rules along with vocabulary information. It can also be used to ask specific questions, such as if a given object is consistent with the vocabulary ruleset. This can be used to implement <a href="http://www.w3.org/TR/sparql11-entailment/">SPARQL Entailment</a> Regimes and <a href="http://www.w3.org/TR/rdf-schema/">RDF Schema</a> entailment.</p>
 
 <h2>
-<a name="features" class="anchor" href="#features"><span class="octicon octicon-link"></span></a>Features</h2>
+<a id="features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h2>
 
 <ul>
 <li>Entail <code>rdfs:subClassOf</code> generating an array of terms which are ancestors of the subject.</li>
 <li>Entail <code>rdfs:subPropertyOf</code> generating an array of terms which are ancestors of the subject.</li>
+<li>Entail <code>rdfs:domain</code> and <code>rdfs:range</code> adding <code>rdf:type</code> assertions on the subject or object.</li>
 <li>Inverse <code>rdfs:subClassOf</code> entailment, to find descendant classes of the subject term.</li>
+<li>Entail <code>owl:equivalentClass</code> generating an array of terms equivalent to the subject.</li>
+<li>Entail <code>owl:equivalentProperty</code> generating an array of terms equivalent to the subject.</li>
 <li>
 <code>domainCompatible?</code> determines if a particular resource is compatible with the domain definition of a given predicate, based on the intersection of entailed subclasses with the property domain.</li>
 <li>
 <code>rangeCompatible?</code> determines if a particular resource is compatible with the range definition of a given predicate, based on the intersection of entailed subclasses or literal types with the property domain.</li>
-</ul><p>Domain and Range entailment include specific rules for schema.org vocabularies.</p>
+</ul>
+
+<p>Domain and Range entailment include specific rules for schema.org vocabularies.</p>
+
+<ul>
+<li>A plain literal is an acceptable value for any property.</li>
+<li>If <code>resource</code> is of type <code>schema:Role</code>, <code>resource</code> is domain acceptable if any other resource references <code>resource</code> using the same property.</li>
+<li>If <code>resource</code> is of type <code>schema:Role</code>, it is range acceptable if it has the same property with an acceptable value.</li>
+<li>If <code>resource</code> is of type <code>rdf:List</code> (must be previously entailed), it is range acceptable if all members of the list are otherwise range acceptable on the same property.</li>
+</ul>
 
 <h2>
-<a name="dependencies" class="anchor" href="#dependencies"><span class="octicon octicon-link"></span></a>Dependencies</h2>
+<a id="examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Examples</h2>
+
+<h3>
+<a id="determine-super-classes-of-a-class" class="anchor" href="#determine-super-classes-of-a-class" aria-hidden="true"><span class="octicon octicon-link"></span></a>Determine super-classes of a class</h3>
+
+<pre><code>require 'rdf/reasoner'
+
+RDF::Reasoner.apply(:rdfs)
+term = RDF::Vocabulary.find_term("http://xmlns.com/foaf/0.1/Person")
+term.entail(:subClassOf)
+  # =&gt; [
+    foaf:Agent,
+    http://www.w3.org/2000/10/swap/pim/contact#Person,
+    geo:SpatialThing,
+    foaf:Person
+  ]
+</code></pre>
+
+<h3>
+<a id="determine-sub-classes-of-a-class" class="anchor" href="#determine-sub-classes-of-a-class" aria-hidden="true"><span class="octicon octicon-link"></span></a>Determine sub-classes of a class</h3>
+
+<pre><code>require 'rdf/reasoner'
+
+RDF::Reasoner.apply(:rdfs)
+term = RDF::FOAF.Person
+term.entail(:subClass) # =&gt; [foaf:Person, mo:SoloMusicArtist]
+</code></pre>
+
+<h3>
+<a id="determine-if-a-resource-is-compatible-with-the-domains-of-a-property" class="anchor" href="#determine-if-a-resource-is-compatible-with-the-domains-of-a-property" aria-hidden="true"><span class="octicon octicon-link"></span></a>Determine if a resource is compatible with the domains of a property</h3>
+
+<pre><code>require 'rdf/reasoner'
+require 'rdf/turtle'
+
+RDF::Reasoner.apply(:rdfs)
+graph = RDF::Graph.load("etc/doap.ttl")
+subj = RDF::URI("http://rubygems.org/gems/rdf-reasoner")
+RDF::DOAP.name.domain_compatible?(subj, graph) # =&gt; true
+</code></pre>
+
+<h3>
+<a id="determine-if-a-resource-is-compatible-with-the-ranges-of-a-property" class="anchor" href="#determine-if-a-resource-is-compatible-with-the-ranges-of-a-property" aria-hidden="true"><span class="octicon octicon-link"></span></a>Determine if a resource is compatible with the ranges of a property</h3>
+
+<pre><code>require 'rdf/reasoner'
+require 'rdf/turtle'
+
+RDF::Reasoner.apply(:rdfs)
+graph = RDF::Graph.load("etc/doap.ttl")
+obj = RDF::Literal(Date.new)
+RDF::DOAP.created.range_compatible?(obj, graph) # =&gt; true
+</code></pre>
+
+<h3>
+<a id="perform-equivalentclass-entailment-on-a-graph" class="anchor" href="#perform-equivalentclass-entailment-on-a-graph" aria-hidden="true"><span class="octicon octicon-link"></span></a>Perform equivalentClass entailment on a graph</h3>
+
+<pre><code>require 'rdf/reasoner'
+require 'rdf/turtle'
+
+RDF::Reasoner.apply(::owl)
+graph = RDF::Graph.load("etc/doap.ttl")
+graph.entail!(:equivalentClass)
+</code></pre>
+
+<h3>
+<a id="yield-all-entailed-statements-for-all-entailment-methods" class="anchor" href="#yield-all-entailed-statements-for-all-entailment-methods" aria-hidden="true"><span class="octicon octicon-link"></span></a>Yield all entailed statements for all entailment methods</h3>
+
+<pre><code>require 'rdf/reasoner'
+require 'rdf/turtle'
+
+RDF::Reasoner.apply(:rdfs, :owl)
+graph = RDF::Graph.load("etc/doap.ttl")
+graph.enum_statement.entail.count # &gt;= graph.enum_statement.count
+</code></pre>
+
+<h2>
+<a id="dependencies" class="anchor" href="#dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dependencies</h2>
 
 <ul>
 <li>
 <a href="http://ruby-lang.org/">Ruby</a> (&gt;= 1.9.2)</li>
 <li>
 <a href="http://rubygems.org/gems/rdf">RDF.rb</a> (&gt;= 1.1)</li>
-</ul><h2>
-<a name="mailing-list" class="anchor" href="#mailing-list"><span class="octicon octicon-link"></span></a>Mailing List</h2>
+</ul>
+
+<h2>
+<a id="mailing-list" class="anchor" href="#mailing-list" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mailing List</h2>
 
 <ul>
 <li><a href="http://lists.w3.org/Archives/Public/public-rdf-ruby/">http://lists.w3.org/Archives/Public/public-rdf-ruby/</a></li>
-</ul><h2>
-<a name="authors" class="anchor" href="#authors"><span class="octicon octicon-link"></span></a>Authors</h2>
+</ul>
+
+<h2>
+<a id="authors" class="anchor" href="#authors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Authors</h2>
 
 <ul>
 <li>
 <a href="http://github.com/gkellogg">Gregg Kellogg</a> - <a href="http://greggkellogg.net/">http://greggkellogg.net/</a>
 </li>
-</ul><h2>
-<a name="contributing" class="anchor" href="#contributing"><span class="octicon octicon-link"></span></a>Contributing</h2>
+</ul>
+
+<h2>
+<a id="contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
 
 <ul>
 <li>Do your best to adhere to the existing coding conventions and idioms.</li>
@@ -85,23 +166,23 @@ list in the the <code>README</code>. Alphabetical order applies.</li>
 <li>Do note that in order for us to merge any non-trivial changes (as a rule
 of thumb, additions larger than about 15 lines of code), we need an
 explicit <a href="http://lists.w3.org/Archives/Public/public-rdf-ruby/2010May/0013.html">public domain dedication</a> on record from you.</li>
-</ul><h2>
-<a name="license" class="anchor" href="#license"><span class="octicon octicon-link"></span></a>License</h2>
+</ul>
+
+<h2>
+<a id="license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
 
 <p>This is free and unencumbered public domain software. For more information,
 see <a href="http://unlicense.org/">http://unlicense.org/</a> or the accompanying {file:UNLICENSE} file.</p>
-      </section>
-    </div>
 
-    <!-- FOOTER  -->
-    <div id="footer_wrap" class="outer">
-      <footer class="inner">
-        <p class="copyright">Rdf-reasoner maintained by <a href="https://github.com/ruby-rdf">ruby-rdf</a></p>
-        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/ruby-rdf/rdf-reasoner">Rdf-reasoner</a> is maintained by <a href="https://github.com/ruby-rdf">ruby-rdf</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
       </footer>
-    </div>
 
-    
+    </section>
 
+  
   </body>
 </html>
+
